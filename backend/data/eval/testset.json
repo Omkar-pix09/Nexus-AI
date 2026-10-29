@@ -1,0 +1,11 @@
+[
+  {"question": "Which database did the placement project use?", "doc": "sample_project_report.md", "phrase": "MongoDB"},
+  {"question": "How was retrieval quality measured in the RAG chatbot?", "doc": "sample_project_report.md", "phrase": "recall"},
+  {"question": "What frontend framework did the student use for the dashboard?", "doc": "sample_resume.md", "phrase": "React"},
+  {"question": "Does the candidate have Docker experience?", "doc": "sample_resume.md", "phrase": "Docker"},
+  {"question": "What hackathon did the student take part in?", "doc": "sample_resume.md", "phrase": "Hackathon"},
+  {"question": "What does the AI/ML engineer role require for evaluation?", "doc": "jd_ai_ml_engineer.md", "phrase": "evaluation"},
+  {"question": "Which vector databases does the AI role mention?", "doc": "jd_ai_ml_engineer.md", "phrase": "pgvector"},
+  {"question": "Does the full-stack job require TypeScript?", "doc": "jd_fullstack_engineer.md", "phrase": "TypeScript"},
+  {"question": "What testing tools does the full-stack role expect?", "doc": "jd_fullstack_engineer.md", "phrase": "Jest"}
+]

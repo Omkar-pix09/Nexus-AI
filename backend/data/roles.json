@@ -1,0 +1,14 @@
+{
+  "ai_ml_engineer": {
+    "name": "AI/ML Engineer (Fresher)",
+    "weights": {"Python": 1.0, "Machine Learning": 0.9, "Deep Learning": 0.6, "NLP": 0.6, "LLMs": 0.8, "RAG": 0.8, "LangChain": 0.5, "Prompt Engineering": 0.4, "ML Evaluation": 0.6, "Statistics": 0.5, "SQL": 0.4, "Data Structures & Algorithms": 0.7, "Git": 0.3, "Docker": 0.3, "FastAPI": 0.4, "REST APIs": 0.3}
+  },
+  "fullstack_engineer": {
+    "name": "Full-Stack Engineer (Fresher)",
+    "weights": {"JavaScript": 1.0, "TypeScript": 0.6, "React": 1.0, "Node.js": 0.9, "MongoDB": 0.6, "SQL": 0.6, "REST APIs": 0.8, "Git": 0.4, "Docker": 0.3, "Cloud Deployment": 0.5, "Testing": 0.4, "Data Structures & Algorithms": 0.7, "System Design": 0.4}
+  },
+  "ai_fullstack": {
+    "name": "AI-Powered Full-Stack Engineer",
+    "weights": {"JavaScript": 0.8, "TypeScript": 0.6, "React": 0.8, "Node.js": 0.6, "Python": 0.9, "FastAPI": 0.6, "LLMs": 0.8, "RAG": 0.8, "LangChain": 0.5, "Machine Learning": 0.5, "SQL": 0.5, "REST APIs": 0.6, "Docker": 0.4, "Cloud Deployment": 0.5, "Data Structures & Algorithms": 0.7, "Git": 0.3, "Testing": 0.3}
+  }
+}

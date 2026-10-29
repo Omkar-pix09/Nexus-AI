@@ -1,0 +1,14 @@
+services:
+  backend:
+    build: ./backend
+    env_file: [{ path: ./backend/.env, required: false }]
+    environment: { NEXUS_DB_PATH: /data/nexus.db, NEXUS_CORS_ORIGINS: "http://localhost:8080" }
+    volumes: [ "nexus-data:/data" ]
+    restart: unless-stopped
+  frontend:
+    build: ./frontend
+    ports: [ "8080:80" ]
+    depends_on: [ backend ]
+    restart: unless-stopped
+volumes:
+  nexus-data:
