@@ -102,6 +102,13 @@ def simulate(target: str = "ai_ml_engineer", days: int = 30, hours_per_day: floa
             "skills_after": {s: round(end[s], 3) for s in alloc},
             "risks": risks, "dependency_warnings": warns[:5], "timeline": timeline,
             "score": round(cov - 0.03 * len(risks) - 0.01 * len(warns), 4),
+            "metrics": {
+                "coverage_before": {"value": round(before, 3), "label": "calculated", "source": "formula: sum(w_s * level_s) / sum(w_s)", "confidence": "high"},
+                "coverage_after": {"value": round(cov, 3), "label": "calculated", "source": "formula: diminishing returns sum(w_s * level_s') / sum(w_s)", "confidence": "high"},
+                "coverage_p10": {"value": round(p10, 3), "label": "estimated", "source": "Monte-Carlo 10th percentile (300 seeded runs, lognormal noise)", "confidence": "estimated"},
+                "coverage_p90": {"value": round(p90, 3), "label": "estimated", "source": "Monte-Carlo 90th percentile (300 seeded runs, lognormal noise)", "confidence": "estimated"},
+                "gain": {"value": round(cov - before, 3), "label": "calculated", "source": "formula: coverage_after - coverage_before", "confidence": "high"},
+            },
         })
     plans.sort(key=lambda p: p["score"], reverse=True)
     best, runner = plans[0], plans[1]
@@ -111,6 +118,12 @@ def simulate(target: str = "ai_ml_engineer", days: int = 30, hours_per_day: floa
         "plans": plans, "recommended": best["id"],
         "tradeoff": f"{best['name']} leads {runner['name']} by {(best['score']-runner['score'])*100:.1f} score points "
                     f"({best['coverage_after']*100:.0f}% vs {runner['coverage_after']*100:.0f}% estimated coverage).",
+        "formulas": {
+            "diminishing_returns": "level' = 1 - (1 - level) * exp(-hours * m / tau)",
+            "tau_parameter": "tau = 0.45 * hours_to_proficiency (taxonomy standard)",
+            "role_coverage": "coverage = sum(weight_i * level_i) / sum(weight_i)",
+            "effective_hours": "total_productive_hours = days * hours_per_day * efficiency_factor",
+        },
         "assumptions": [
             f"Only {settings.sim_efficiency*100:.0f}% of planned hours are productive (breaks, debugging, context switching).",
             "Skill gain follows diminishing returns: level' = 1 - (1 - level) * exp(-hours / tau), tau = 0.45 * hours-to-proficiency.",
@@ -119,5 +132,9 @@ def simulate(target: str = "ai_ml_engineer", days: int = 30, hours_per_day: floa
             "Uncertainty band = 10th-90th percentile over 300 seeded runs with learning-rate noise (sigma 0.25).",
             "Coverage is a skill-match score for the chosen target. It is NOT a hiring or selection probability.",
         ],
-        "labels": {"calculated": ["coverage_before", "coverage_after", "hours", "allocation"], "estimated": ["coverage_p10", "coverage_p90", "levels"]},
+        "labels": {
+            "calculated": ["coverage_before", "coverage_after", "hours", "allocation", "gain", "total_productive_hours"],
+            "estimated": ["coverage_p10", "coverage_p90", "levels", "skills_after", "score"],
+        },
+        "disclaimer": "NON-PREDICTIVE NOTICE: NEXUS AI models skill coverage from user evidence and mathematical learning models. It does NOT predict hiring, admissions, or selection probabilities.",
     }

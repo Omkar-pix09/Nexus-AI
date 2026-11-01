@@ -2,6 +2,7 @@
 import json
 import re
 from typing import Iterator
+from pydantic import BaseModel, Field
 
 from ..services import retrieval, simulator, skills
 from ..services.llm import LLMError, llm
@@ -62,6 +63,10 @@ def verify(s):
     return {"issues": issues, "retries": s.get("retries", 0) + 1, "summary": f"{len(issues)} verification flag(s)"}
 
 
+class AgentReportModel(BaseModel):
+    decision_brief: str = Field(description="Concise decision brief adhering to non-predictive rules and evidence-grounded facts")
+
+
 def report(s):
     sim = s["simulation"]
     best = next(p for p in sim["plans"] if p["id"] == sim["recommended"])
@@ -70,19 +75,22 @@ def report(s):
         "range": [best["coverage_p10"], best["coverage_p90"]], "top_hours": dict(list(best["hours"].items())[:5]),
         "tradeoff": sim["tradeoff"], "flags": s["issues"], "assumptions": sim["assumptions"][:3],
     }
-    text = None
+    hrs = ", ".join(f"{k} {v:g}h" for k, v in facts["top_hours"].items())
+    deterministic_text = (
+        f"Recommendation: **{best['name']}**. Estimated skill coverage for {sim['target_name']} moves from "
+        f"{sim['coverage_now']*100:.0f}% to {best['coverage_after']*100:.0f}% (likely range {best['coverage_p10']*100:.0f}-{best['coverage_p90']*100:.0f}%). "
+        f"Hours: {hrs}. {sim['tradeoff']} " + ("Flags: " + " ".join(s["issues"]) if s["issues"] else "No verification flags.")
+    )
+    text = deterministic_text
     if llm.is_live:
-        try:
-            text = llm.generate(
-                "Write a concise decision brief (max 180 words). Use ONLY the numbers in the JSON. Label estimates as estimates. Do not predict hiring outcomes.",
-                json.dumps(facts), 500)
-        except LLMError:
-            text = None
-    if text is None:
-        hrs = ", ".join(f"{k} {v:g}h" for k, v in facts["top_hours"].items())
-        text = (f"Recommendation: **{best['name']}**. Estimated skill coverage for {sim['target_name']} moves from "
-                f"{sim['coverage_now']*100:.0f}% to {best['coverage_after']*100:.0f}% (likely range {best['coverage_p10']*100:.0f}-{best['coverage_p90']*100:.0f}%). "
-                f"Hours: {hrs}. {sim['tradeoff']} " + ("Flags: " + " ".join(s["issues"]) if s["issues"] else "No verification flags."))
+        structured = llm.generate_structured(
+            schema=AgentReportModel,
+            system="Write a concise decision brief (max 180 words). Use ONLY the numbers in the JSON. Label every number calculated or estimated. NEVER predict hiring or selection.",
+            user=json.dumps(facts),
+            fallback=AgentReportModel(decision_brief=deterministic_text),
+            max_tokens=500,
+        )
+        text = structured.decision_brief
     return {"report": text, "summary": "Decision brief written"}
 
 

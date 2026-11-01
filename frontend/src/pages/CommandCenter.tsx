@@ -38,7 +38,11 @@ export default function CommandCenter() {
         <Card title="Recommended next action" className="xl:col-span-2">
           <p className="text-lg">{d.next_action.summary}</p>
           <div className="mt-3"><Bar value={d.coverage} color="#8b5cf6" /></div>
-          <p className="mt-2 text-xs text-slate-400">Calculated from the gap-optimised 7-day plan. Coverage is an estimate from your documents, not a hiring prediction.</p>
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-400">
+            <span className="rounded bg-white/10 px-2 py-0.5 text-slate-300">Plan: <b>Calculated</b> from 7-day optimization formula</span>
+            <span className="rounded bg-white/10 px-2 py-0.5 text-slate-300">Levels: <b>Estimated</b> from your documents</span>
+            <span className="rounded bg-amber/20 px-2 py-0.5 text-amber">Non-predictive: skill coverage only, not a hiring guarantee</span>
+          </div>
           <div className="mt-4 flex flex-wrap gap-2">{d.gaps.map((g: string) => <span key={g} className="rounded-full border border-ember/40 bg-ember/10 px-3 py-1 text-xs text-ember">gap · {g}</span>)}</div>
         </Card>
         <Card title="Evidence upload">

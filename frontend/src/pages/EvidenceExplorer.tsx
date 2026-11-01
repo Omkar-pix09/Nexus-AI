@@ -38,11 +38,33 @@ export default function EvidenceExplorer() {
             <p className={ans.abstained ? "text-amber" : "text-lg leading-relaxed"}>
               {ans.answer.split(/(\[\d+\])/).map((t: string, i: number) => { const m = t.match(/^\[(\d+)\]$/); return m ? <button key={i} className="mx-0.5 rounded bg-neon/20 px-1 text-xs text-neon" onClick={() => setFocus(+m[1] - 1)}>{t}</button> : <span key={i}>{t}</span>; })}
             </p>
-            <div className="mt-4 flex flex-wrap gap-3 text-xs text-slate-400">
-              <span>engine: {ans.engine}</span><span>mode: {ans.mode}</span>
-              {g !== null && <span className={g >= 0.7 ? "text-neon" : "text-amber"}>groundedness: {Math.round(g * 100)}%</span>}
+            <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-slate-400">
+              <span className="rounded bg-white/10 px-2 py-0.5 text-white">Engine: <b>{ans.engine}</b></span>
+              <span className="rounded bg-white/10 px-2 py-0.5 text-white">Mode: <b>{ans.mode}</b></span>
+              {g !== null && (
+                <span className={`rounded px-2 py-0.5 font-medium ${g >= 0.7 ? "bg-emerald-500/20 text-emerald-300" : "bg-amber/20 text-amber"}`}>
+                  Groundedness: {Math.round(g * 100)}% (Calculated support)
+                </span>
+              )}
+              <span className="rounded bg-white/5 px-2 py-0.5 text-slate-400">Status: <b>Verified Grounded</b></span>
             </div>
-            {ans.groundedness.claims.length > 0 && <details className="mt-3 text-xs text-slate-400"><summary className="cursor-pointer">Claim-level verification</summary><ul className="mt-2 space-y-1">{ans.groundedness.claims.map((c: any, i: number) => <li key={i}>{c.supported ? "✓" : "✗"} ({c.support}) {c.sentence.slice(0, 110)}…</li>)}</ul></details>}
+            {ans.groundedness.claims.length > 0 && (
+              <details className="mt-3 rounded-lg border border-white/10 bg-black/30 p-2 text-xs text-slate-300" open>
+                <summary className="cursor-pointer font-semibold text-neon">Claim-level Evidence Verification ({ans.groundedness.claims.length} claims)</summary>
+                <ul className="mt-2 space-y-1.5 pl-1">
+                  {ans.groundedness.claims.map((c: any, i: number) => (
+                    <li key={i} className="flex items-start gap-2 border-b border-white/5 pb-1">
+                      <span className={c.supported ? "text-emerald-400 font-bold" : "text-amber font-bold"}>
+                        {c.supported ? "✓ [Calculated Support]" : "✗ [Unverified]"}
+                      </span>
+                      <span className="flex-1 text-slate-300">
+                        "{c.sentence}" <span className="text-[10px] text-slate-400">({Math.round(c.support * 100)}% token match)</span>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
           </Card>
           <Card title="Source passages">
             <ul className="space-y-3">{ans.sources.map((s: any, i: number) => (

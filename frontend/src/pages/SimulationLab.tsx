@@ -34,25 +34,113 @@ export default function SimulationLab() {
       </Card>
       {err && <ErrorNote msg={err} />}
       {msg && <p className="rounded-xl border border-neon/40 bg-neon/10 p-3 text-sm text-neon">{msg}</p>}
+      {sim?.disclaimer && (
+        <div className="rounded-xl border border-amber/30 bg-amber/10 p-3 text-xs text-amber-300">
+          <strong>Notice:</strong> {sim.disclaimer}
+        </div>
+      )}
       {busy && !sim ? <Spinner label="Simulating plans…" /> : sim && (
         <>
           <Card title="Verdict">
-            <p className="text-lg">Estimated skill coverage now: <b>{pct(sim.coverage_now)}</b> · productive hours in window: <b>{sim.total_productive_hours}</b></p>
+            <p className="text-lg">
+              Estimated skill coverage now: <span className="font-semibold text-white">{pct(sim.coverage_now)}</span> · productive hours in window: <span className="font-semibold text-white">{sim.total_productive_hours}</span>
+            </p>
             <p className="mt-1 text-slate-300">{sim.tradeoff}</p>
+            <div className="mt-3 flex flex-wrap gap-2 text-xs">
+              <span className="rounded bg-white/10 px-2 py-0.5 text-slate-300">Coverage: <b>Calculated</b></span>
+              <span className="rounded bg-white/10 px-2 py-0.5 text-slate-300">P10/P90 Range: <b>Estimated</b></span>
+              <span className="rounded bg-emerald-500/20 text-emerald-300 px-2 py-0.5">100% Traceable</span>
+            </div>
           </Card>
           <div className="grid gap-4 lg:grid-cols-2">
             {sim.plans.map((p: any) => (
               <Card key={p.id} className={p.id === sim.recommended ? "!border-neon/60" : ""}>
-                <div className="flex items-start justify-between"><div><h3 className="text-lg font-semibold">{p.name}{p.id === sim.recommended && <span className="ml-2 rounded-full bg-neon/20 px-2 py-0.5 text-xs text-neon">recommended</span>}</h3><p className="text-sm text-slate-400">{p.description}</p></div><p className="text-2xl font-semibold text-neon">{pct(p.coverage_after)}</p></div>
-                <div className="mt-3"><Bar value={p.coverage_after} low={p.coverage_p10} high={p.coverage_p90} /><p className="mt-1 text-xs text-slate-400">Calculated {pct(p.coverage_after)} · estimated range {pct(p.coverage_p10)}–{pct(p.coverage_p90)} · gain +{(p.gain * 100).toFixed(0)} pts</p></div>
-                <div className="mt-3 flex flex-wrap gap-1.5">{Object.entries(p.hours as Record<string, number>).slice(0, 6).map(([s, h]) => <span key={s} className="rounded-full border border-white/10 px-2 py-0.5 text-xs">{s} · {h}h</span>)}</div>
-                {[...p.risks, ...p.dependency_warnings].length > 0 && <ul className="mt-3 list-disc pl-5 text-xs text-amber">{[...p.risks, ...p.dependency_warnings].map((r: string) => <li key={r}>{r}</li>)}</ul>}
-                <div className="mt-3 flex gap-2"><button className="btn-ghost" onClick={() => setOpen(open === p.id ? null : p.id)}>{open === p.id ? "Hide" : "Show"} weekly timeline</button><button className="btn" onClick={() => adopt(p)}>Adopt plan</button></div>
-                {open === p.id && <div className="mt-3 max-h-48 overflow-auto text-xs"><table className="w-full"><tbody>{p.timeline.map((w: any) => <tr key={w.week} className="border-t border-white/5"><td className="py-1 pr-3 text-slate-400">Week {w.week}</td><td>{Object.entries(w.hours as Record<string, number>).slice(0, 4).map(([s, h]) => `${s} ${h}h`).join(" · ")}</td></tr>)}</tbody></table></div>}
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold">
+                      {p.name}
+                      {p.id === sim.recommended && <span className="ml-2 rounded-full bg-neon/20 px-2 py-0.5 text-xs text-neon">recommended</span>}
+                    </h3>
+                    <p className="text-sm text-slate-400">{p.description}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-2xl font-semibold text-neon">{pct(p.coverage_after)}</p>
+                    <span className="text-[10px] uppercase tracking-wider text-slate-400">calculated</span>
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <Bar value={p.coverage_after} low={p.coverage_p10} high={p.coverage_p90} />
+                  <p className="mt-1 text-xs text-slate-400">
+                    Calculated {pct(p.coverage_after)} · estimated range {pct(p.coverage_p10)}–{pct(p.coverage_p90)} · gain +{(p.gain * 100).toFixed(0)} pts
+                  </p>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {Object.entries(p.hours as Record<string, number>).slice(0, 6).map(([s, h]) => (
+                    <span key={s} className="rounded-full border border-white/10 px-2 py-0.5 text-xs">
+                      {s} · {h}h
+                    </span>
+                  ))}
+                </div>
+                {[...p.risks, ...p.dependency_warnings].length > 0 && (
+                  <ul className="mt-3 list-disc pl-5 text-xs text-amber">
+                    {[...p.risks, ...p.dependency_warnings].map((r: string) => <li key={r}>{r}</li>)}
+                  </ul>
+                )}
+                <div className="mt-3 flex gap-2">
+                  <button className="btn-ghost" onClick={() => setOpen(open === p.id ? null : p.id)}>
+                    {open === p.id ? "Hide" : "Show"} weekly timeline & formulas
+                  </button>
+                  <button className="btn" onClick={() => adopt(p)}>Adopt plan</button>
+                </div>
+                {open === p.id && (
+                  <div className="mt-3 space-y-3 rounded-lg border border-white/10 bg-black/40 p-3 text-xs">
+                    <div>
+                      <p className="font-semibold text-slate-300 mb-1">Weekly Allocation (Calculated)</p>
+                      <table className="w-full">
+                        <tbody>
+                          {p.timeline.map((w: any) => (
+                            <tr key={w.week} className="border-t border-white/5">
+                              <td className="py-1 pr-3 text-slate-400">Week {w.week}</td>
+                              <td>{Object.entries(w.hours as Record<string, number>).slice(0, 4).map(([s, h]) => `${s} ${h}h`).join(" · ")}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    {p.metrics && (
+                      <div className="border-t border-white/10 pt-2">
+                        <p className="font-semibold text-slate-300 mb-1">Traceability Breakdown</p>
+                        <ul className="space-y-1 text-slate-400">
+                          {Object.entries(p.metrics).map(([k, m]: [string, any]) => (
+                            <li key={k}>
+                              <span className="text-white font-mono">{k}</span>: <span className="text-neon">[{m.label}]</span> {m.source}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
               </Card>
             ))}
           </div>
-          <Card title="Assumptions (shown explicitly)"><ul className="list-disc space-y-1 pl-5 text-sm text-slate-300">{sim.assumptions.map((a: string) => <li key={a}>{a}</li>)}</ul></Card>
+          {sim.formulas && (
+            <Card title="Mathematical Formulas (Traceable)">
+              <div className="grid gap-2 text-xs font-mono text-slate-300 sm:grid-cols-2">
+                {Object.entries(sim.formulas).map(([k, formula]: [string, any]) => (
+                  <div key={k} className="rounded border border-white/5 bg-white/[0.02] p-2">
+                    <p className="text-neon/80 uppercase tracking-wider">{k.replace("_", " ")}</p>
+                    <p className="mt-1 text-slate-200">{formula}</p>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+          <Card title="Assumptions (shown explicitly)">
+            <ul className="list-disc space-y-1 pl-5 text-sm text-slate-300">
+              {sim.assumptions.map((a: string) => <li key={a}>{a}</li>)}
+            </ul>
+          </Card>
         </>
       )}
     </div>

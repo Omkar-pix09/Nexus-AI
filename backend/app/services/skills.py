@@ -90,7 +90,15 @@ def levels() -> dict[str, dict]:
         total = sum(x["mentions"] for x in e)
         base = 0.0 if not e else min(0.7, 0.2 + 0.12 * len(e) + 0.05 * min(total, 6))
         lvl = min(0.95, base + bonus.get(s, 0.0))
-        out[s] = {"level": round(lvl, 3), "evidence_level": round(base, 3), "bonus": round(bonus.get(s, 0.0), 3), "evidence_count": len(e)}
+        out[s] = {
+            "level": round(lvl, 3),
+            "evidence_level": round(base, 3),
+            "bonus": round(bonus.get(s, 0.0), 3),
+            "evidence_count": len(e),
+            "label": "estimated",
+            "source": f"calculated from {len(e)} document evidence snippet(s) and {total} keyword occurrence(s)" if e else "no document evidence (assumed zero base)",
+            "formula": "base = min(0.70, 0.20 + 0.12*n_docs + 0.05*min(mentions, 6)) + task_bonus",
+        }
     return out
 
 

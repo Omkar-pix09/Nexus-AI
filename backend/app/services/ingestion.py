@@ -19,13 +19,45 @@ def guess_kind(name: str) -> str:
     return "notes"
 
 
+INJECTION_PATTERNS = [
+    re.compile(r"ignore\s+(all\s+)?(previous|prior|above)\s+(instructions|prompts|directives)", re.IGNORECASE),
+    re.compile(r"(system\s+prompt|system\s+message|developer\s+mode|jailbreak|DAN\s+mode)", re.IGNORECASE),
+    re.compile(r"<\s*/?(system|assistant|human|user|instruction)\s*>", re.IGNORECASE),
+    re.compile(r"(disregard|override)\s+all\s+rules", re.IGNORECASE),
+    re.compile(r"you\s+are\s+now\s+(an?\s+)?unrestricted", re.IGNORECASE),
+]
+
+EMAIL_PATTERN = re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b")
+PHONE_PATTERN = re.compile(r"\b(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b")
+KEY_PATTERN = re.compile(r"\b(?:api[_-]?key|bearer|token|secret)[=:\s]+[A-Za-z0-9_\-\.]{16,}\b", re.IGNORECASE)
+
+
+def sanitize_untrusted_input(text: str) -> str:
+    """Neutralize prompt injections in untrusted uploaded documents."""
+    cleaned = text
+    for pattern in INJECTION_PATTERNS:
+        cleaned = pattern.sub("[filtered-instruction]", cleaned)
+    # Neutralize control characters
+    cleaned = re.sub(r"[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]", "", cleaned)
+    return cleaned
+
+
+def redact_pii(text: str) -> str:
+    """Redact sensitive personal identifiers before processing or external calls."""
+    t = EMAIL_PATTERN.sub("[REDACTED_EMAIL]", text)
+    t = PHONE_PATTERN.sub("[REDACTED_PHONE]", t)
+    t = KEY_PATTERN.sub("[REDACTED_SECRET]", t)
+    return t
+
+
 def parse(name: str, data: bytes) -> list[tuple[int, str]]:
     if name.lower().endswith(".pdf"):
         from pypdf import PdfReader
 
         reader = PdfReader(io.BytesIO(data))
-        return [(i + 1, p.extract_text() or "") for i, p in enumerate(reader.pages)]
-    return [(1, data.decode("utf-8", errors="ignore"))]
+        return [(i + 1, sanitize_untrusted_input(p.extract_text() or "")) for i, p in enumerate(reader.pages)]
+    raw = data.decode("utf-8", errors="ignore")
+    return [(1, sanitize_untrusted_input(raw))]
 
 
 def chunk_text(text: str, size: int = 700, overlap: int = 120) -> list[str]:

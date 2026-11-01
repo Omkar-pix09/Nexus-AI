@@ -1,9 +1,16 @@
-"""Natural-language command router used by the voice dock and chat. Rule-based on purpose:
-fast, deterministic, no LLM round-trip before speaking. Unknown input falls back to grounded Q&A."""
 import re
+from typing import Literal
+from pydantic import BaseModel, Field
 
 from ..agents.pipeline import parse_horizon
 from . import graph, memory, rag, simulator, skills
+from .llm import llm
+
+
+class CommandClassification(BaseModel):
+    intent: Literal["simulate", "progress", "graph", "ask"]
+    confidence: float = Field(default=1.0, ge=0.0, le=1.0)
+
 
 
 def handle(text: str, target: str = "ai_ml_engineer") -> dict:

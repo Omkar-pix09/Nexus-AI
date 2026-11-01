@@ -1,14 +1,20 @@
-"""Grounded question answering: retrieve -> abstain if weak -> answer with [n] citations -> verify groundedness."""
 import re
+from pydantic import BaseModel, Field
 
 from ..core.config import settings
 from . import retrieval
-from .llm import LLMError, llm
+from .llm import llm
 
 SYSTEM = (
     "You are NEXUS, an evidence-grounded assistant. Answer ONLY from the numbered sources. "
-    "Cite every claim with [n]. If the sources do not contain the answer, say so plainly."
+    "Cite every claim with [n]. If the sources do not contain the answer, say so plainly. "
+    "Never claim to predict hiring or selection."
 )
+
+
+class RAGAnswerModel(BaseModel):
+    answer: str = Field(description="Evidence-grounded answer citing sources with [n]")
+    has_sufficient_evidence: bool = Field(True, description="Whether sources contain sufficient evidence to answer")
 
 
 def _sentences(text: str) -> list[str]:
@@ -61,11 +67,26 @@ def answer(question: str, k: int = 5, mode: str = "hybrid_rerank") -> dict:
     text = None
     if llm.is_live:
         ctx = "\n\n".join(f"[{i}] ({h['doc_name']}) {h['text']}" for i, h in enumerate(hits, 1))
-        try:
-            text = llm.generate(SYSTEM, f"Sources:\n{ctx}\n\nQuestion: {question}")
-            engine = llm.provider
-        except LLMError:
-            text = None
+        fallback_text = _extractive(question, hits)
+        fallback_obj = RAGAnswerModel(answer=fallback_text, has_sufficient_evidence=True)
+        structured = llm.generate_structured(
+            schema=RAGAnswerModel,
+            system=SYSTEM,
+            user=f"Sources:\n{ctx}\n\nQuestion: {question}",
+            fallback=fallback_obj,
+        )
+        if not structured.has_sufficient_evidence:
+            return {
+                "question": question,
+                "abstained": True,
+                "answer": "I couldn't find enough evidence in your documents to answer that. Upload a relevant document or rephrase.",
+                "sources": hits[:2],
+                "groundedness": {"score": None, "claims": []},
+                "mode": mode,
+                "engine": llm.provider,
+            }
+        text = structured.answer
+        engine = llm.provider
     if text is None:
         text = _extractive(question, hits)
     return {
@@ -77,3 +98,4 @@ def answer(question: str, k: int = 5, mode: str = "hybrid_rerank") -> dict:
         "mode": mode,
         "engine": engine,
     }
+
