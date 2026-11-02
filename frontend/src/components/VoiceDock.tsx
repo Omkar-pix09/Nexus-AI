@@ -1,17 +1,21 @@
 import { useState } from "react";
 import { Mic, MicOff, Square, Send, Volume2 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { api } from "../lib/api";
 import { useStore } from "../lib/store";
 import { useVoice } from "../hooks/useVoice";
 
 export default function VoiceDock() {
   const nav = useNavigate();
+  const loc = useLocation();
   const { target, refresh } = useStore();
   const [log, setLog] = useState<{ role: "you" | "nexus"; text: string }[]>([]);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(true);
+
+  // If user is currently on Command Center, the Hero Voice Orb is already the centerpiece
+  if (loc.pathname === "/") return null;
 
   const send = async (t: string) => {
     if (!t.trim()) return;

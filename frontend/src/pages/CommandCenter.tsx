@@ -3,6 +3,7 @@ import { Upload, CheckCircle2, Circle, Plus } from "lucide-react";
 import { api } from "../lib/api";
 import { useStore } from "../lib/store";
 import { Bar, Card, Counter, ErrorNote, Spinner } from "../components/ui";
+import { HeroVoiceOrb } from "../components/voice/HeroVoiceOrb";
 
 export default function CommandCenter() {
   const { target, tick, refresh } = useStore();
@@ -29,6 +30,12 @@ export default function CommandCenter() {
         <h1 className="text-3xl font-semibold">Don’t just ask AI what to do. <span className="text-neon">Simulate what could happen next.</span></h1>
         <p className="mt-1 text-slate-400">Target: {d.target_name}</p>
       </header>
+
+      {/* Hero Voice Orb: Audio-Reactive Mission AI Core */}
+      <section aria-label="Hero Voice Orb Mission Control">
+        <HeroVoiceOrb onPlanAdopted={refresh} />
+      </section>
+
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {[["Skill coverage (est.)", d.coverage * 100, "%"], ["Documents indexed", d.documents, ""], ["Evidence links", d.evidence_links, ""], ["Open tasks", d.open_tasks, ""]].map(([l, v, s]) => (
           <Card key={l as string}><p className="label">{l as string}</p><p className="mt-2 text-4xl font-semibold text-neon"><Counter value={v as number} suffix={s as string} /></p></Card>
