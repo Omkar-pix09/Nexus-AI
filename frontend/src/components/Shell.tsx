@@ -1,6 +1,6 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { LayoutDashboard, Network, FlaskConical, FileSearch, Bot, Sparkles } from "lucide-react";
+import { LayoutDashboard, Network, FlaskConical, FileSearch, Bot, Sparkles, Palette } from "lucide-react";
 import NeuralBackground from "./NeuralBackground";
 import VoiceDock from "./VoiceDock";
 import { api } from "../lib/api";
@@ -12,6 +12,7 @@ const NAV = [
   { to: "/simulate", label: "Simulation Lab", icon: FlaskConical },
   { to: "/evidence", label: "Evidence Explorer", icon: FileSearch },
   { to: "/research", label: "AI Research Room", icon: Bot },
+  { to: "/design", label: "Design System", icon: Palette },
 ];
 
 export default function Shell() {

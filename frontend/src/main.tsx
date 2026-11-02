@@ -7,6 +7,7 @@ import KnowledgeGraph from "./pages/KnowledgeGraph";
 import SimulationLab from "./pages/SimulationLab";
 import EvidenceExplorer from "./pages/EvidenceExplorer";
 import ResearchRoom from "./pages/ResearchRoom";
+import DesignShowcase from "./pages/DesignShowcase";
 import "./index.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
@@ -19,6 +20,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
           <Route path="simulate" element={<SimulationLab />} />
           <Route path="evidence" element={<EvidenceExplorer />} />
           <Route path="research" element={<ResearchRoom />} />
+          <Route path="design" element={<DesignShowcase />} />
         </Route>
       </Routes>
     </BrowserRouter>
