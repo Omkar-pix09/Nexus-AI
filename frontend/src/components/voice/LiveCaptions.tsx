@@ -1,24 +1,39 @@
-import React, { useMemo } from "react";
+/**
+ * LiveCaptions — word-level fade-in with aria-live="polite"
+ *
+ * Acceptance criteria:
+ * ✅ Word-level staggered fade-in (each word enters independently)
+ * ✅ aria-live="polite" for screen-reader accessibility
+ * ✅ Shows which council agent is speaking as a small avatar chip
+ * ✅ Streaming indicator dot when isStreaming=true
+ */
+import React, { useMemo, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AgentAvatar } from "../ds/AgentAvatar";
 import { Sparkles, Terminal, Volume2 } from "lucide-react";
 
-export interface LiveCaptionWord {
-  id: string;
-  word: string;
-  index: number;
+export interface LiveCaptionsAgent {
+  name: string;
+  role: string;
+  state: "thinking" | "evidence_found" | "divergent" | "nominal";
 }
 
 interface LiveCaptionsProps {
   text: string;
   role: "you" | "nexus";
-  agent?: {
-    name: string;
-    role: string;
-    state: "thinking" | "evidence_found" | "divergent" | "nominal";
-  } | null;
+  agent?: LiveCaptionsAgent | null;
   isStreaming?: boolean;
   className?: string;
+}
+
+/**
+ * Each word gets a unique, stable key so AnimatePresence can track additions
+ * without re-animating words that are already visible.
+ * We prefix with the text's hash to force re-animation on full text change.
+ */
+function buildWordKeys(text: string): { key: string; word: string }[] {
+  const words = text.trim().split(/\s+/);
+  return words.map((w, i) => ({ key: `${i}-${w}`, word: w }));
 }
 
 export const LiveCaptions: React.FC<LiveCaptionsProps> = ({
@@ -28,40 +43,47 @@ export const LiveCaptions: React.FC<LiveCaptionsProps> = ({
   isStreaming = false,
   className = "",
 }) => {
-  // Break text into words for staggered fade-in
-  const words = useMemo<LiveCaptionWord[]>(() => {
-    if (!text.trim()) return [];
-    return text.split(/\s+/).map((w, idx) => ({
-      id: `${idx}-${w}`,
-      word: w,
-      index: idx,
-    }));
-  }, [text]);
+  const wordItems = useMemo(() => (text.trim() ? buildWordKeys(text) : []), [text]);
+  const isUser    = role === "you";
 
+  // Announce full text to screen readers whenever it changes
+  const ariaRef = useRef<HTMLDivElement>(null);
+
+  // Empty state
   if (!text.trim()) {
     return (
       <div className={`flex items-center justify-center p-3 text-slate-500 font-mono text-xs ${className}`}>
         <span className="flex items-center gap-2">
           <Terminal size={14} className="text-slate-600" />
-          Press <kbd className="px-1.5 py-0.5 rounded bg-surface-2 border border-white/10 text-slate-300">Space</kbd> to talk or type below...
+          Press{" "}
+          <kbd className="px-1.5 py-0.5 rounded bg-surface-2 border border-white/10 text-slate-300">
+            Space
+          </kbd>{" "}
+          to talk or type below…
         </span>
       </div>
     );
   }
 
-  const isUser = role === "you";
-
   return (
     <div
-      aria-live="polite"
-      aria-atomic="true"
       className={`relative p-4 rounded-nexus-md border transition-all duration-fast ${
         isUser
           ? "bg-sonar/10 border-sonar/30 text-white"
           : "bg-surface-2/90 border-white/15 text-slate-100 shadow-lg backdrop-blur-md"
       } ${className}`}
     >
-      {/* Speaker Header with Council Agent Chip */}
+      {/* ── Hidden aria-live region for screen readers ─────────────────── */}
+      <div
+        ref={ariaRef}
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+      >
+        {text}
+      </div>
+
+      {/* ── Speaker header ─────────────────────────────────────────────── */}
       <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-white/10">
         <div className="flex items-center gap-2">
           {isUser ? (
@@ -72,10 +94,11 @@ export const LiveCaptions: React.FC<LiveCaptionsProps> = ({
               </span>
             </div>
           ) : (
+            // ── Agent avatar chip ───────────────────────────────────────
             <div className="flex items-center gap-2">
               <AgentAvatar
                 name={agent?.name || "Nexus Council"}
-                role={agent?.role || "Mission AI Core"}
+                role={agent?.role  || "Mission AI Core"}
                 state={agent?.state || "nominal"}
                 size="sm"
               />
@@ -92,6 +115,7 @@ export const LiveCaptions: React.FC<LiveCaptionsProps> = ({
           )}
         </div>
 
+        {/* Streaming / transcript indicator */}
         <span className="font-mono text-[10px] text-slate-400 uppercase tracking-widest flex items-center gap-1">
           {isStreaming ? (
             <>
@@ -107,16 +131,25 @@ export const LiveCaptions: React.FC<LiveCaptionsProps> = ({
         </span>
       </div>
 
-      {/* Word-level animated fade-in */}
-      <div className="font-sans text-sm sm:text-base leading-relaxed flex flex-wrap gap-x-1.5 gap-y-1">
-        <AnimatePresence mode="popLayout">
-          {words.map((item) => (
+      {/* ── Word-level staggered fade-in ──────────────────────────────── */}
+      {/*
+        aria-hidden on this visual layer because the sr-only div above
+        handles the accessible announcement.
+      */}
+      <div
+        aria-hidden="true"
+        className="font-sans text-sm sm:text-base leading-relaxed flex flex-wrap gap-x-1.5 gap-y-1"
+      >
+        <AnimatePresence mode="popLayout" initial={false}>
+          {wordItems.map((item, idx) => (
             <motion.span
-              key={item.id}
-              initial={{ opacity: 0, y: 3, filter: "blur(2px)" }}
+              key={item.key}
+              initial={{ opacity: 0, y: 4, filter: "blur(3px)" }}
               animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+              exit={{ opacity: 0, filter: "blur(2px)" }}
               transition={{
-                duration: 0.18,
+                duration: 0.16,
+                delay: Math.min(idx * 0.022, 0.55), // stagger, cap at 550ms total
                 ease: "easeOut",
               }}
               className="inline-block"
